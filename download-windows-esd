@@ -1,0 +1,105 @@
+#!/bin/sh
+
+set -e
+
+name="download-windows-esd"
+cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${name}"
+xml="${cache_dir}/products.xml"
+
+download_products_xml() {
+    mkdir -p "${cache_dir}"
+    pushd "${cache_dir}" >/dev/null
+
+    # only try to download if the local file is older than a day old, or missing
+    if [ -z "$(find products.cab -mmin 1 2>/dev/null)" ]; then
+        # curl will check the remote modification time and skip the download if not newer
+        curl -sL -o products.cab -z products.cab 'https://go.microsoft.com/fwlink/?LinkId=2156292'
+        # update products.cab mtime just in case curl decided not to update it
+        touch products.cab
+        tar xf products.cab products.xml
+    fi
+
+    popd >/dev/null
+}
+
+query() {
+    xpath -q -n -e "$1" "${xml}"
+}
+
+languages() {
+    query "//LanguageCode/text()" | sort | uniq
+}
+
+editions() {
+    query "//File[LanguageCode='$1']/Edition/text()" | sort | uniq
+}
+
+architectures() {
+    query "//File[LanguageCode='$1'][Edition='$2']/Architecture/text()" | sort
+}
+
+file_xml() {
+    query "//File[LanguageCode='$1'][Edition='$2'][Architecture='$3']"
+}
+
+subquery() {
+    echo "$2" | xpath -q -n -e "$1"
+}
+
+filename() {
+    subquery "//FileName/text()" "$1"
+}
+
+url() {
+    subquery "//FilePath/text()" "$1"
+}
+
+sha1() {
+    subquery "//Sha1/text()" "$1"
+}
+
+usage() {
+    cat <<EOT >&2
+usage:
+    $0 languages
+    $0 editions LANGUAGE
+    $0 architectures LANGUAGE EDITION
+    $0 download LANGUAGE EDITION ARCHITECTURE
+EOT
+}
+
+download_products_xml
+
+case "$1" in
+    download)
+        if [ -z "$4" ]; then usage; exit 1; fi
+
+        file_xml="$(file_xml "$2" "$3" "$4")"
+
+        filename="$(filename "${file_xml}")"
+        url="$(url "${file_xml}")"
+        expected_sha1="$(sha1 "${file_xml}")"
+
+        curl -#OR -C - "${url}"
+
+        actual_sha1="$(sha1sum "${filename}" | cut -b -40)"
+        if [ "${expected_sha1}" != "${actual_sha1}" ]; then echo SHA-1 mismatch \(expected ${sha1}\) >&2; exit 5; fi
+        ;;
+
+    languages)
+        languages
+        ;;
+
+    editions)
+        if [ -z "$2" ]; then usage; exit 1; fi
+        editions "$2"
+        ;;
+
+    architectures)
+        if [ -z "$3" ]; then usage; exit 1; fi
+        architectures "$2" "$3" ;;
+
+    *)
+        usage; exit 1
+        ;; 
+esac
