@@ -2,7 +2,7 @@
 
 A tool to download Windows 11 electronic software distributions (ESD) directly from Microsoft.
 
-Since Microsoft does not distribute Windows ARM ISO images, this tool plus [a way to convert ESD to ISO](#iso-conversion) allows you to obtain a Windows ARM ISO image—e.g. for use in a virtual machine, such as the free VMware Fusion Player.
+Since Microsoft does not distribute Windows ARM ISO images, this tool plus [a way to convert ESD to ISO](#iso-conversion) allows you to obtain a Windows ARM ISO image—e.g. for use in a virtual machine, such as [UTM](https://getutm.app) or [the free VMware Fusion Player](https://www.vmware.com/go/getfusionplayer).
 
 ## Requirements
 
