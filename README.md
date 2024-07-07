@@ -34,6 +34,20 @@ download-windows-esd download LANGUAGE EDITION ARCHITECTURE
 
 Downloads the ESD listed for the given language, edition, and architecture. This image may have more than one edition.
 
+```
+download-windows-esd shasum LANGUAGE EDITION ARCHITECTURE
+```
+
+Outputs the SHA-1 checksum and filename of the ESD in a format
+compatible with [shasum](https://ss64.com/mac/shasum.html)'s "-c"
+flag.
+
+```
+download-windows-esd url LANGUAGE EDITION ARCHITECTURE
+```
+
+Outputs the download URL for the ESD.
+
 ## How it works
 
 [download-windows-esd](./download-windows-esd) will use a Microsoft redirect link to download an XML catalog file listing all variations of Windows 11 ESDs.

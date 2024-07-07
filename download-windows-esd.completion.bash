@@ -5,12 +5,12 @@ _download_windows_esd_completions() {
 
     case "${COMP_CWORD}" in
     1)
-        COMPREPLY=($(compgen -W "download languages architectures editions" "${COMP_WORDS[1]}"))
+        COMPREPLY=($(compgen -W "download shasum url languages architectures editions" "${COMP_WORDS[1]}"))
         ;;
 
     2)
         case "${COMP_WORDS[1]}" in
-        download|editions|architectures)
+        download|shasum|url|editions|architectures)
             IFS=$'\n'
             COMPREPLY=($(compgen -C "${script}"\ languages "${COMP_WORDS[2]}"))
             ;;
@@ -19,7 +19,7 @@ _download_windows_esd_completions() {
 
     3)
         case "${COMP_WORDS[1]}" in
-        download|architectures)
+        download|shasum|url|architectures)
             IFS=$'\n'
             COMPREPLY=($(compgen -C "${script}"\ editions\ "${COMP_WORDS[2]}" "${COMP_WORDS[3]}")) 
             ;;
@@ -29,7 +29,7 @@ _download_windows_esd_completions() {
 
     4)
         case "${COMP_WORDS[1]}" in
-        download)
+        download|shasum|url)
             IFS=$'\n'
             COMPREPLY=($(compgen -C "${script}"\ architectures\ "${COMP_WORDS[2]}"\ "${COMP_WORDS[3]}" "${COMP_WORDS[4]}")) 
             ;;

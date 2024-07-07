@@ -65,6 +65,8 @@ usage:
     $0 editions LANGUAGE
     $0 architectures LANGUAGE EDITION
     $0 download LANGUAGE EDITION ARCHITECTURE
+    $0 shasum LANGUAGE EDITION ARCHITECTURE
+    $0 url LANGUAGE EDITION ARCHITECTURE
 EOT
 }
 
@@ -84,6 +86,25 @@ case "$1" in
 
         actual_sha1="$(shasum "${filename}" | cut -b -40)"
         if [ "${expected_sha1}" != "${actual_sha1}" ]; then echo SHA-1 mismatch \(expected ${expected_sha1}\) >&2; exit 5; fi
+        ;;
+
+    shasum)
+        if [ -z "$4" ]; then usage; exit 1; fi
+
+        file_xml="$(file_xml "$2" "$3" "$4")"
+        filename="$(filename "${file_xml}")"
+        expected_sha1="$(sha1 "${file_xml}")"
+
+        echo "${expected_sha1}  ${filename}"
+        ;;
+ 
+    url)
+        if [ -z "$4" ]; then usage; exit 1; fi
+
+        file_xml="$(file_xml "$2" "$3" "$4")"
+
+        url="$(url "${file_xml}")"
+        echo "${url}"
         ;;
 
     languages)
