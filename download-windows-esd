@@ -16,7 +16,7 @@ download_products_xml() {
         curl -sL -o products.cab -z products.cab 'https://go.microsoft.com/fwlink/?LinkId=2156292'
         # update products.cab mtime just in case curl decided not to update it
         touch products.cab
-        tar xf products.cab products.xml
+        /usr/bin/tar xf products.cab products.xml
     fi
 
     popd >/dev/null
