@@ -17,7 +17,7 @@ download-windows-esd languages
   - Or use a one-liner
 
     ```shell
-      curl -fsSL https://raw.githubusercontent.com/mattieb/download-windows-esd/refs/heads/main/download-windows-esd | bash -s -- download en-us Core ARM64
+    curl -fsSL https://raw.githubusercontent.com/mattieb/download-windows-esd/refs/heads/main/download-windows-esd | bash -s -- download en-us Core ARM64
     ```
 
 Lists the available language codes.
