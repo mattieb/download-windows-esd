@@ -10,31 +10,37 @@ All requirements are already included in macOS. Patches are welcome for portabil
 
 ## Usage
 
-```
+```shell
 download-windows-esd languages
 ```
 
+  - Or use a one-liner
+
+    ```shell
+      curl -fsSL https://raw.githubusercontent.com/mattieb/download-windows-esd/refs/heads/main/download-windows-esd | bash -s -- download en-us Core ARM64
+    ```
+
 Lists the available language codes.
 
-```
+```shell
 download-windows-esd editions LANGUAGE
 ```
 
 Given a language code, lists the available Windows editions.
 
-```
+```shell
 download-windows-esd architectures LANGUAGE EDITION
 ```
 
 Given a language code and edition name, lists the available architectures.
 
-```
+```shell
 download-windows-esd download LANGUAGE EDITION ARCHITECTURE
 ```
 
 Downloads the ESD listed for the given language, edition, and architecture. This image may have more than one edition.
 
-```
+```shell
 download-windows-esd shasum LANGUAGE EDITION ARCHITECTURE
 ```
 
@@ -42,7 +48,7 @@ Outputs the SHA-1 checksum and filename of the ESD in a format
 compatible with [shasum](https://ss64.com/mac/shasum.html)'s "-c"
 flag.
 
-```
+```shell
 download-windows-esd url LANGUAGE EDITION ARCHITECTURE
 ```
 
@@ -58,7 +64,7 @@ If the cabinet file is more than 24 hours old or missing, this tool will automat
 
 Once the download is complete, it is checked against the SHA1 checksum present in the catalog.
 
-## Bash autocomplete
+## Bash Autocompletion
 
 Though the tool is not specific to [Bash](https://tiswww.case.edu/php/chet/bash/bashtop.html), [a Bash completion script](./download-windows-esd.completion.bash) is included.
 
@@ -66,7 +72,7 @@ This script, when sourced or installed with other Bash completions, will provide
 
 (Note: Bash completions can also be used in [zsh](https://zsh.sourceforge.io) via [bashcompinit](https://zsh.sourceforge.io/Doc/Release/Completion-System.html#Use-of-compinit); in fact, as a zsh user, I developed the completions this way.)
 
-## ISO conversion
+## ISO Conversion
 
 There are a few ways you can convert the ESD to an ISO image.
 
