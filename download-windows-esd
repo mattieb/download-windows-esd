@@ -100,7 +100,7 @@ case "$1" in
             "${url}"
 
         actual_sha1="$(shasum "${filename}" | cut -b -40)"
-        if [ "${expected_sha1}" != "${actual_sha1}" ]; then echo SHA-1 mismatch \(expected ${expected_sha1}\) >&2; exit 5; fi
+        if [ "${expected_sha1}" != "${actual_sha1}" ]; then echo "SHA-1 mismatch (expected ${expected_sha1})" >&2; exit 5; fi
         ;;
 
     shasum)
