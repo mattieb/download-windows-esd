@@ -13,7 +13,12 @@ download_products_xml() {
     # only try to download if the local file is older than a day old, or missing
     if [ -z "$(find products.cab -mmin 1 2>/dev/null)" ]; then
         # curl will check the remote modification time and skip the download if not newer
-        curl -sL -o products.cab -z products.cab 'https://go.microsoft.com/fwlink/?LinkId=2156292'
+        curl \
+            --location \
+            --silent \
+            --output products.cab \
+            --time-cond products.cab \
+            'https://go.microsoft.com/fwlink/?LinkId=2156292'
         # update products.cab mtime just in case curl decided not to update it
         touch products.cab
         /usr/bin/tar xf products.cab products.xml
@@ -82,7 +87,16 @@ case "$1" in
         url="$(url "${file_xml}")"
         expected_sha1="$(sha1 "${file_xml}")"
 
-        curl -#OR -C - "${url}"
+        # --location isn't strictly needed, since I've never seen Microsoft's
+        # CDN do a redirect, but there's no good reason not to
+        curl \
+            --continue-at - \
+            --fail \
+            --location \
+            --progress-bar \
+            --remote-name \
+            --remote-time \
+            "${url}"
 
         actual_sha1="$(shasum "${filename}" | cut -b -40)"
         if [ "${expected_sha1}" != "${actual_sha1}" ]; then echo SHA-1 mismatch \(expected ${expected_sha1}\) >&2; exit 5; fi
