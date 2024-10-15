@@ -79,63 +79,83 @@ EOT
 download_products_xml
 
 case "$1" in
-    download)
-        if [ -z "$4" ]; then usage; exit 1; fi
+download)
+    if [ -z "$4" ]; then
+        usage
+        exit 1
+    fi
 
-        file_xml="$(file_xml "$2" "$3" "$4")"
+    file_xml="$(file_xml "$2" "$3" "$4")"
 
-        filename="$(filename "${file_xml}")"
-        url="$(url "${file_xml}")"
-        expected_sha1="$(sha1 "${file_xml}")"
+    filename="$(filename "${file_xml}")"
+    url="$(url "${file_xml}")"
+    expected_sha1="$(sha1 "${file_xml}")"
 
-        # --location isn't strictly needed, since I've never seen Microsoft's
-        # CDN do a redirect, but there's no good reason not to
-        curl \
-            --continue-at - \
-            --fail \
-            --location \
-            --progress-bar \
-            --remote-name \
-            --remote-time \
-            "${url}"
+    # --location isn't strictly needed, since I've never seen Microsoft's
+    # CDN do a redirect, but there's no good reason not to
+    curl \
+        --continue-at - \
+        --fail \
+        --location \
+        --progress-bar \
+        --remote-name \
+        --remote-time \
+        "${url}"
 
-        actual_sha1="$(shasum "${filename}" | cut -b -40)"
-        if [ "${expected_sha1}" != "${actual_sha1}" ]; then echo "SHA-1 mismatch (expected ${expected_sha1})" >&2; exit 5; fi
-        ;;
+    actual_sha1="$(shasum "${filename}" | cut -b -40)"
+    if [ "${expected_sha1}" != "${actual_sha1}" ]; then
+        echo "SHA-1 mismatch (expected ${expected_sha1})" >&2
+        exit 5
+    fi
+    ;;
 
-    shasum)
-        if [ -z "$4" ]; then usage; exit 1; fi
+shasum)
+    if [ -z "$4" ]; then
+        usage
+        exit 1
+    fi
 
-        file_xml="$(file_xml "$2" "$3" "$4")"
-        filename="$(filename "${file_xml}")"
-        expected_sha1="$(sha1 "${file_xml}")"
+    file_xml="$(file_xml "$2" "$3" "$4")"
+    filename="$(filename "${file_xml}")"
+    expected_sha1="$(sha1 "${file_xml}")"
 
-        echo "${expected_sha1}  ${filename}"
-        ;;
- 
-    url)
-        if [ -z "$4" ]; then usage; exit 1; fi
+    echo "${expected_sha1}  ${filename}"
+    ;;
 
-        file_xml="$(file_xml "$2" "$3" "$4")"
+url)
+    if [ -z "$4" ]; then
+        usage
+        exit 1
+    fi
 
-        url="$(url "${file_xml}")"
-        echo "${url}"
-        ;;
+    file_xml="$(file_xml "$2" "$3" "$4")"
 
-    languages)
-        languages
-        ;;
+    url="$(url "${file_xml}")"
+    echo "${url}"
+    ;;
 
-    editions)
-        if [ -z "$2" ]; then usage; exit 1; fi
-        editions "$2"
-        ;;
+languages)
+    languages
+    ;;
 
-    architectures)
-        if [ -z "$3" ]; then usage; exit 1; fi
-        architectures "$2" "$3" ;;
+editions)
+    if [ -z "$2" ]; then
+        usage
+        exit 1
+    fi
+    editions "$2"
+    ;;
 
-    *)
-        usage; exit 1
-        ;; 
+architectures)
+    if [ -z "$3" ]; then
+        usage
+        exit 1
+    fi
+    architectures "$2" "$3"
+    ;;
+
+*)
+    usage
+    exit 1
+    ;;
 esac
