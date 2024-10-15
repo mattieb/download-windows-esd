@@ -8,7 +8,8 @@ xml="${cache_dir}/products.xml"
 
 download_products_xml() {
     mkdir -p "${cache_dir}"
-    pushd "${cache_dir}" >/dev/null
+    lastwd="$(pwd)"
+    cd "${cache_dir}"
 
     # only try to download if the local file is older than a day old, or missing
     if [ -z "$(find products.cab -mmin 1 2>/dev/null)" ]; then
@@ -24,7 +25,7 @@ download_products_xml() {
         /usr/bin/tar xf products.cab products.xml
     fi
 
-    popd >/dev/null
+    cd "${lastwd}"
 }
 
 query() {
