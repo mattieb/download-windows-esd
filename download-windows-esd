@@ -34,7 +34,7 @@ download_products_xml() {
 
         # macOS has a /usr/bin/tar that can extract cabs, to reduce
         # dependencies
-        if [ ! -z "$(which cabextract 2>/dev/null)" ]; then
+        if [ -n "$(which cabextract 2>/dev/null)" ]; then
             cabextract -q products.cab
         else
             /usr/bin/tar xf products.cab || extract_error
