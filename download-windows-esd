@@ -6,23 +6,39 @@ name="download-windows-esd"
 cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${name}"
 xml="${cache_dir}/products.xml"
 
+extract_error() {
+    echo Error: cabextract or a cab-capable /usr/bin/tar is needed >&2
+    exit 1
+}
+
 download_products_xml() {
     mkdir -p "${cache_dir}"
     lastwd="$(pwd)"
     cd "${cache_dir}"
 
-    # only try to download if the local file is older than a day old, or missing
+    # only try to download if the local file is older than a day
+    # old, or missing
     if [ -z "$(find products.cab -mmin 1 2>/dev/null)" ]; then
-        # curl will check the remote modification time and skip the download if not newer
+        # curl will check the remote modification time and skip the
+        # download if not newer
         curl \
             --location \
             --silent \
             --output products.cab \
             --time-cond products.cab \
             'https://go.microsoft.com/fwlink/?LinkId=2156292'
-        # update products.cab mtime just in case curl decided not to update it
+
+        # update products.cab mtime just in case curl decided not
+        # to update it
         touch products.cab
-        /usr/bin/tar xf products.cab products.xml
+
+        # macOS has a /usr/bin/tar that can extract cabs, to reduce
+        # dependencies
+        if [ ! -z "$(which cabextract 2>/dev/null)" ]; then
+            cabextract -q products.cab
+        else
+            /usr/bin/tar xf products.cab || extract_error
+        fi
     fi
 
     cd "${lastwd}"
@@ -102,7 +118,14 @@ download)
         --remote-time \
         "${url}"
 
-    actual_sha1="$(shasum "${filename}" | cut -b -40)"
+    # "cksum -qa sha1" is OpenBSD, sha1sum is faster than shasum
+    # if available
+    actual_sha1="$(
+        (
+            cksum -qa sha1 "${filename}" ||
+            sha1sum "${filename}" ||
+            shasum "${filename}"
+        ) 2>/dev/null | cut -b -40)"
     if [ "${expected_sha1}" != "${actual_sha1}" ]; then
         echo "SHA-1 mismatch (expected ${expected_sha1})" >&2
         exit 5

@@ -6,7 +6,19 @@ Since Microsoft does not distribute Windows ARM ISO images, this tool plus [a wa
 
 ## Requirements
 
+### macOS
+
 All requirements are already included in macOS. Patches are welcome for portability.
+
+macOS's tar(1) is capable of extracting the products.cab file. This means macOS does not need [cabextract](https://www.cabextract.org.uk). The script will automatically prefer cabextract if it has been installed, but otherwise fall back.
+
+### OpenBSD
+
+Install the following packages with [pkg_add(1)](https://man.openbsd.org/pkg_add):
+
+- cabextract
+- curl
+- p5-XML-XPath
 
 ## Usage
 
