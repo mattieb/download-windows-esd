@@ -4,74 +4,179 @@ set -e
 
 name="download-windows-esd"
 cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/${name}"
+cache_version="1"
 xml="${cache_dir}/products.xml"
 
 download_products_xml() {
-    mkdir -p "${cache_dir}"
-    lastwd="$(pwd)"
-    cd "${cache_dir}"
+	mkdir -p "${cache_dir}"
+	lastwd="$(pwd)"
+	cd "${cache_dir}"
 
-    # only try to download if the local file is older than a day old, or missing
-    if [ -z "$(find products.cab -mmin 1 2>/dev/null)" ]; then
-        # curl will check the remote modification time and skip the download if not newer
-        curl \
-            --location \
-            --silent \
-            --output products.cab \
-            --time-cond products.cab \
-            'https://go.microsoft.com/fwlink/?LinkId=2156292'
-        # update products.cab mtime just in case curl decided not to update it
-        touch products.cab
-        /usr/bin/tar xf products.cab products.xml
-    fi
+	# upgrade from 1.0.0's buggy products.cab date logic
+	if [ ! -f version ] && [ -f products.cab ]; then
+		rm -f products.cab
+	fi
 
-    cd "${lastwd}"
+	# only try to download if it has been more than a day, or never
+	if [ -z "$(find version -mmin -1440 2>/dev/null)" ]; then
+		tmpdir=$(mktemp -d)
+		cleanup() {
+			rm -rf "${tmpdir}"
+		}
+		trap cleanup EXIT
+
+		# this cert, extracted from a Windows 11 machine, backfills the short cert chain
+		# presented by https://fe3.delivery.mp.microsoft.com/
+		cat <<EOT >"${tmpdir}/microsoft-root-ca-2011.cer"
+-----BEGIN CERTIFICATE-----
+MIIF7TCCA9WgAwIBAgIQP4vItfyfspZDtWnWbELhRDANBgkqhkiG9w0BAQsFADCB
+iDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCldhc2hpbmd0b24xEDAOBgNVBAcTB1Jl
+ZG1vbmQxHjAcBgNVBAoTFU1pY3Jvc29mdCBDb3Jwb3JhdGlvbjEyMDAGA1UEAxMp
+TWljcm9zb2Z0IFJvb3QgQ2VydGlmaWNhdGUgQXV0aG9yaXR5IDIwMTEwHhcNMTEw
+MzIyMjIwNTI4WhcNMzYwMzIyMjIxMzA0WjCBiDELMAkGA1UEBhMCVVMxEzARBgNV
+BAgTCldhc2hpbmd0b24xEDAOBgNVBAcTB1JlZG1vbmQxHjAcBgNVBAoTFU1pY3Jv
+c29mdCBDb3Jwb3JhdGlvbjEyMDAGA1UEAxMpTWljcm9zb2Z0IFJvb3QgQ2VydGlm
+aWNhdGUgQXV0aG9yaXR5IDIwMTEwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK
+AoICAQCygEGqNThNE3IyaCJNuLLx/9VSvGzH9dJKjDbu0cJcfoyKrq8TKG/Ac+M6
+ztAlqFo6be+ouFmrEyNozQwph9FvgFyPRH9dkAFSWKxRxV8qh9zc2AodwQO5e7BW
+6KPeZGHCnvjzfLnsDbVU/ky2ZU+I8JxImQxCCwl8MVkXeQZ4KI2JOkwDJb5xalwL
+54RgpJki49KvhKSn+9GY7Qyp3pSJ4Q6g3MDOmT3qCFK7VnnkH4S6Hri0xElcTzFL
+h93dBWcmmYDgcRGjuKVB4qRTufcyKYMME782XgSzS0NHL2vikR7TmE/dQgfI6B0S
+/Jmpaz6SfsjWaTr8ZL22CZ3K/QwLopt3YEsDlKQwaRLWQi3BQUzK3Kr9j1uDRprZ
+/LHR47PJf0h6zSTwQY9cdNCssBAgBkm3xy0hyFfj0IbzA2j70M5xwYmZSmQBbP3s
+MJHPQTySx+W6hh1hhMdfgzlirrSSL0fzC/hV66AfWdC7dJse0Hbm8ukG1xDo+mTe
+acY1logC8Ea4PyeZb8txiSk190gWAjWP1Xl8TQLPX+uKg09FcYj5qQ1OcunCnAfP
+SRtOBA5jUYxe2ADBVSy2xuDCZU7JNDn1nLPEfuhhbhNfFcRf2X7tHc7uROzLLoax
+7Dj2cO2rXBPB2Q8Nx4CyVe0096yb5MPa50c8prWPMd/FS6/r8QIDAQABo1EwTzAL
+BgNVHQ8EBAMCAYYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUci06AjGQQ7kU
+BU7h6qfHMdEjiTQwEAYJKwYBBAGCNxUBBAMCAQAwDQYJKoZIhvcNAQELBQADggIB
+AH9yzw+3xRXbm8BJyiZb/p4T5tPw0tuXX/JLP02zrhmu7deXoKzvqTqjwkGw5biR
+nhOBJAPmCf0/V0A5ISRW0RAvS0CpNoZLtFNXmvvxfomPEf4YbFGq6O0JlbXlccmh
+6Yd1phV/yX43VF50k8XDZ8wNT2uoFwxtCJJ+i92Bqi1wIcM9BhS7vyRep4TXPw8h
+Ir1LAAbblxzYXtTFC1yHblCk6MM4pPvLLMWSZpuFXst6bJN8gClYW1e1QGm6CHmm
+ZGIVnYeWRbVmIyADixxzoNOieTPgUFmG2y/lAiXqcyqfABTINseSO+lOAOzYVgm5
+M0kS0lQLAausR7aRKX1MtHWAUgHoyoL2n8ysnI8X6i8msKtyrAv+nlEex0NVZ09R
+s1fWtuzuUrc66U7h14GIvE+OdbtLqPA1qibUZ2dJsnBMO5PcHd94kIZysjik0dyS
+TclY6ysSXNQ7roxrsIPlAT/4CTL2kzU0Iq/dNw13CYArzUgA8YyZGUcFAenRv9FO
+0OYoQzeZpApKCNmacXPSqs0xE2N2oTdvkjgefRI8ZjLny23h/FKJ3crWZgWalmG+
+oijHHKOnNlA8OqTfSm7mhzvO6/DggTedEzxSjr25HTTGHdUKaj2YKXCMiSrRq4IQ
+SB/c9O+lxbtVGjhjhE63bK2VVOxlIhBJF7jAHscPrFRH
+-----END CERTIFICATE-----
+EOT
+
+		# find the current URL via Windows Update services
+		# <https://github.com/rbalsleyMSFT/FFU/commit/1daa14584a6e807cc6a57153bd5b822cda4541c0>
+		# we use "amd64" here because "arm64" doesn't work; catalog has everything anyway
+		search_results=$(
+			curl \
+				--cacert "${tmpdir}/microsoft-root-ca-2011.cer" \
+				--data '{
+					"Products": "PN=Windows.Products.Cab.amd64&V=26100.0.0.0",
+					"DeviceAttributes": "DUScan=1;OSVersion=10.0.026100.1"
+				}' \
+				--header 'Content-Type: application/json' \
+				--request POST \
+				--silent \
+				https://fe3.delivery.mp.microsoft.com/UpdateMetadataService/updates/search/v1/bydeviceinfo
+		)
+
+		if [ "${search_results}" = '[]' ]; then
+			echo "Windows Update services did not return a catalog result" >&2
+			exit 6
+		fi
+
+		# dependency-free JSON parsing via
+		# <https://paulgalow.com/how-to-work-with-json-api-data-in-macos-shell-scripts/>
+		url=$(
+			json="${search_results}" osascript -l 'JavaScript' \
+				-e 'const json=$.NSProcessInfo.processInfo.environment.objectForKey("json").js' \
+				-e 'JSON.parse(json)[0].FileLocations[0].Url'
+		)
+
+		# curl will check the remote modification time and skip the download if not newer
+		curl \
+			--location \
+			--output products.cab.download \
+			--remote-time \
+			--silent \
+			--time-cond products.cab \
+			"${url}"
+
+		if [ -f "products.cab.download" ]; then
+			expected_sha256=$(
+				json="${search_results}" osascript -l 'JavaScript' \
+					-e 'const json=$.NSProcessInfo.processInfo.environment.objectForKey("json").js' \
+					-e 'JSON.parse(json)[0].FileLocations[0].Digest'
+			)
+
+			actual_sha256=$(
+				shasum -a 256 products.cab.download |
+					cut -d \  -f 1 |
+					xxd -r -p |
+					base64
+			)
+
+			if [ "${expected_sha256}" != "${actual_sha256}" ]; then
+				rm -f products.cab.download
+				echo "SHA-256 mismatch checking products.cab (expected ${expected_sha256})" >&2
+				exit 7
+			fi
+
+			mv products.cab.download products.cab
+
+			/usr/bin/tar xf products.cab products.xml
+		fi
+
+		echo "${cache_version}" >version
+	fi
+
+	cd "${lastwd}"
 }
 
 query() {
-    xpath -q -n -e "$1" "${xml}"
+	xpath -q -n -e "$1" "${xml}"
 }
 
 languages() {
-    query "//LanguageCode/text()" | sort | uniq
+	query "//LanguageCode/text()" | sort | uniq
 }
 
 editions() {
-    query "//File[LanguageCode='$1']/Edition/text()" | sort | uniq
+	query "//File[LanguageCode='$1']/Edition/text()" | sort | uniq
 }
 
 architectures() {
-    query "//File[LanguageCode='$1'][Edition='$2']/Architecture/text()" | sort
+	query "//File[LanguageCode='$1'][Edition='$2']/Architecture/text()" | sort
 }
 
 file_xml() {
-    query "//File[LanguageCode='$1'][Edition='$2'][Architecture='$3']"
+	query "//File[LanguageCode='$1'][Edition='$2'][Architecture='$3']"
 }
 
 subquery() {
-    echo "$2" | xpath -q -n -e "$1"
+	echo "$2" | xpath -q -n -e "$1"
 }
 
 filename() {
-    subquery "//FileName/text()" "$1"
+	subquery "//FileName/text()" "$1"
 }
 
 url() {
-    subquery "//FilePath/text()" "$1"
+	subquery "//FilePath/text()" "$1"
 }
 
-sha1() {
-    subquery "//Sha1/text()" "$1"
+sha256() {
+	subquery "//Sha256/text()" "$1"
 }
 
 usage() {
-    cat <<EOT >&2
+	cat <<EOT >&2
 usage:
     $0 languages
     $0 editions LANGUAGE
     $0 architectures LANGUAGE EDITION
     $0 download LANGUAGE EDITION ARCHITECTURE
-    $0 shasum LANGUAGE EDITION ARCHITECTURE
+    $0 sha256sum LANGUAGE EDITION ARCHITECTURE
     $0 url LANGUAGE EDITION ARCHITECTURE
 EOT
 }
@@ -80,82 +185,88 @@ download_products_xml
 
 case "$1" in
 download)
-    if [ -z "$4" ]; then
-        usage
-        exit 1
-    fi
+	if [ -z "$4" ]; then
+		usage
+		exit 1
+	fi
 
-    file_xml="$(file_xml "$2" "$3" "$4")"
+	file_xml="$(file_xml "$2" "$3" "$4")"
 
-    filename="$(filename "${file_xml}")"
-    url="$(url "${file_xml}")"
-    expected_sha1="$(sha1 "${file_xml}")"
+	filename="$(filename "${file_xml}")"
+	url="$(url "${file_xml}")"
+	expected_sha256="$(sha256 "${file_xml}")"
 
-    # --location isn't strictly needed, since I've never seen Microsoft's
-    # CDN do a redirect, but there's no good reason not to
-    curl \
-        --continue-at - \
-        --fail \
-        --location \
-        --progress-bar \
-        --remote-name \
-        --remote-time \
-        "${url}"
+	# --location isn't strictly needed, since I've never seen Microsoft's CDN do a redirect, but
+	# there's no good reason not to
+	curl \
+		--continue-at - \
+		--fail \
+		--location \
+		--progress-bar \
+		--remote-name \
+		--remote-time \
+		"${url}"
 
-    actual_sha1="$(shasum "${filename}" | cut -b -40)"
-    if [ "${expected_sha1}" != "${actual_sha1}" ]; then
-        echo "SHA-1 mismatch (expected ${expected_sha1})" >&2
-        exit 5
-    fi
-    ;;
+	actual_sha256="$(shasum -a 256 "${filename}" | cut -d \  -f 1)"
+	if [ "${expected_sha256}" != "${actual_sha256}" ]; then
+		echo "SHA-256 mismatch (expected ${expected_sha256})" >&2
+		exit 5
+	fi
+	;;
 
 shasum)
-    if [ -z "$4" ]; then
-        usage
-        exit 1
-    fi
+	echo "shasum is no longer a valid command; use sha256sum" >&2
+	usage
+	exit 1
+	;;
 
-    file_xml="$(file_xml "$2" "$3" "$4")"
-    filename="$(filename "${file_xml}")"
-    expected_sha1="$(sha1 "${file_xml}")"
+sha256sum)
+	if [ -z "$4" ]; then
+		usage
+		exit 1
+	fi
 
-    echo "${expected_sha1}  ${filename}"
-    ;;
+	file_xml="$(file_xml "$2" "$3" "$4")"
+	filename="$(filename "${file_xml}")"
+	expected_sha256="$(sha256 "${file_xml}")"
+
+	echo "${expected_sha256}  ${filename}"
+	;;
 
 url)
-    if [ -z "$4" ]; then
-        usage
-        exit 1
-    fi
+	if [ -z "$4" ]; then
+		usage
+		exit 1
+	fi
 
-    file_xml="$(file_xml "$2" "$3" "$4")"
+	file_xml="$(file_xml "$2" "$3" "$4")"
 
-    url="$(url "${file_xml}")"
-    echo "${url}"
-    ;;
+	url="$(url "${file_xml}")"
+	echo "${url}"
+	;;
 
 languages)
-    languages
-    ;;
+	languages
+	;;
 
 editions)
-    if [ -z "$2" ]; then
-        usage
-        exit 1
-    fi
-    editions "$2"
-    ;;
+	if [ -z "$2" ]; then
+		usage
+		exit 1
+	fi
+	editions "$2"
+	;;
 
 architectures)
-    if [ -z "$3" ]; then
-        usage
-        exit 1
-    fi
-    architectures "$2" "$3"
-    ;;
+	if [ -z "$3" ]; then
+		usage
+		exit 1
+	fi
+	architectures "$2" "$3"
+	;;
 
 *)
-    usage
-    exit 1
-    ;;
+	usage
+	exit 1
+	;;
 esac
